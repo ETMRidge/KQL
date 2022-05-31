@@ -18,7 +18,7 @@
                 "description": "Identifies occurrences where a user has rejected an MFA prompt. This could be an indicator that a threat actor has compromised the username and password of this user account and is using it to try and log into the account.\nRef : https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-user-accounts#monitoring-for-failed-unusual-sign-ins",
                 "severity": "Medium",
                 "enabled": false,
-                "query": "let maxdecline = 2;\nSigninLogs\n| where ResultType == 500121\n| extend additionalDetails_ = tostring(Status.additionalDetails)\n| where additionalDetails_ =~ \"MFA denied; user declined the authentication\"\n| project\n    UserDisplayName,\n    IPAddress,\n    ResultType,\n    AutonomousSystemNumber,\n    Status,\n    TimeGenerated\n| summarize normalcount=dcount(AutonomousSystemNumber) by tostring(Status), bin(TimeGenerated, 10m), IPAddress, UserDisplayName\n\n",
+                "query": "let maxdecline = 2;\nSigninLogs\n| where ResultType == 500121\n| extend additionalDetails_ = tostring(Status.additionalDetails)\n| where additionalDetails_ =~ \"MFA denied; user declined the authentication\"\n| project\n    UserDisplayName,\n    IPAddress,\n    ResultType,\n    AutonomousSystemNumber,\n    Status,\n    TimeGenerated\n| summarize normalcount=dcount(AutonomousSystemNumber) by tostring(Status), bin(TimeGenerated, 10m), IPAddress, UserDisplayName\n| where normalcount >= maxdecline\n\n",
                 "suppressionDuration": "PT5H",
                 "suppressionEnabled": false,
                 "tactics": [
