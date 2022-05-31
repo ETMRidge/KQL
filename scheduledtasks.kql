@@ -1,0 +1,6 @@
+DeviceEvents
+| where TimeGenerated > ago(30d)
+| where InitiatingProcessCommandLine contains "/change" or InitiatingProcessCommandLine contains "/create"
+| where InitiatingProcessFolderPath == "c:\\windows\\system32\\schtasks.exe"
+| where InitiatingProcessMD5 == "76cd6626dd8834bd4a42e6a565104dc2"
+| summarize ccountd=count() by InitiatingProcessCommandLine, bin(TimeGenerated, 5m), InitiatingProcessParentFileName,InitiatingProcessId, InitiatingProcessAccountName 
