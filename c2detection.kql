@@ -1,0 +1,7 @@
+externaldata(RemoteIP: string, RemotePort: int, Status: string)
+[
+"https://feodotracker.abuse.ch/downloads/ipblocklist_recommended.json"
+]
+with(format="MultiJSON", ingestionMapping='[{"Column":"RemoteIP","Properties":{"Path":"$.ip_address"}}, {"Column":"RemotePort","Properties":{"Path":"$.port"}}, {"Column":"Status","Properties":{"Path":"$.status"}}]')
+| where Status == "online"
+| join kind=inner DeviceNetworkEvents on RemoteIP, RemotePort
