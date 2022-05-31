@@ -1,0 +1,70 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "workspace": {
+            "type": "String"
+        }
+    },
+    "resources": [
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/63413d1c-feff-43f0-89e1-5611fcd75fec')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/63413d1c-feff-43f0-89e1-5611fcd75fec')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "NRT",
+            "apiVersion": "2021-10-01-preview",
+            "properties": {
+                "displayName": "NRT MFA Rejected by User",
+                "description": "Identifies occurrences where a user has rejected an MFA prompt. This could be an indicator that a threat actor has compromised the username and password of this user account and is using it to try and log into the account.\nRef : https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-user-accounts#monitoring-for-failed-unusual-sign-ins",
+                "severity": "Medium",
+                "enabled": false,
+                "query": "let maxdecline = 2;\nSigninLogs\n| where ResultType == 500121\n| extend additionalDetails_ = tostring(Status.additionalDetails)\n| where additionalDetails_ =~ \"MFA denied; user declined the authentication\"\n| project\n    UserDisplayName,\n    IPAddress,\n    ResultType,\n    AutonomousSystemNumber,\n    Status,\n    TimeGenerated\n| summarize normalcount=dcount(AutonomousSystemNumber) by tostring(Status), bin(TimeGenerated, 10m), IPAddress, UserDisplayName\n\n",
+                "suppressionDuration": "PT5H",
+                "suppressionEnabled": false,
+                "tactics": [
+                    "InitialAccess"
+                ],
+                "techniques": [
+                    "T1078"
+                ],
+                "alertRuleTemplateName": "3617d76d-b15e-4c6f-985e-a1dac73c592d",
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5H",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": [],
+                        "groupByCustomDetails": []
+                    }
+                },
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": [
+                    {
+                        "entityType": "Account",
+                        "fieldMappings": [
+                            {
+                                "identifier": "FullName",
+                                "columnName": "UserDisplayName"
+                            }
+                        ]
+                    },
+                    {
+                        "entityType": "IP",
+                        "fieldMappings": [
+                            {
+                                "identifier": "Address",
+                                "columnName": "IPAddress"
+                            }
+                        ]
+                    }
+                ],
+                "sentinelEntitiesMappings": null,
+                "templateVersion": "1.0.1"
+            }
+        }
+    ]
+}
