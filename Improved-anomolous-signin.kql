@@ -1,0 +1,44 @@
+let dayone = 1d;
+let daythree = 3d;
+let week = 7d;
+SigninLogs
+| where TimeGenerated >= startofday(ago(week))
+| where isnotempty(IPAddress)
+| project TimeGenerated, UserPrincipalName, IPAddress, AppDisplayName
+| make-series ipcount=dcount(IPAddress)
+   on TimeGenerated
+   in range(startofday(ago(week)), now(), 1d)
+   by UserPrincipalName
+| extend (RSquare, Slope, Variance, RVariance, Interception, LineFit)=series_fit_line(ipcount)
+| where Slope > 0.5 //slope is the difference between the length of time ran and the average result.
+| top 50 by Slope desc
+| join kind = leftsemi ( 
+    table('SigninLogs')
+    | where TimeGenerated >= startofday(ago(daythree))
+    | where isnotempty(IPAddress)
+    | project TimeGenerated, UserPrincipalName, IPAddress, AppDisplayName
+    | make-series ipcount=dcount(IPAddress)
+       on TimeGenerated
+       in range(startofday(ago(daythree)), now(), 1d)
+       by UserPrincipalName
+    | extend (RSquare, Slope, Variance, RVariance, Interception, LineFit)=series_fit_line(ipcount)
+    | where Slope > 0.5
+    | top 50 by Slope desc
+    )
+    on UserPrincipalName
+| join kind = leftsemi ( 
+    table('SigninLogs')
+    | where TimeGenerated >= startofday(ago(dayone))
+    | where isnotempty(IPAddress)
+    | project TimeGenerated, UserPrincipalName, IPAddress, AppDisplayName
+    | make-series ipcount=dcount(IPAddress)
+       on TimeGenerated
+       in range(startofday(ago(dayone)), now(), 1d)
+       by UserPrincipalName
+    | extend (RSquare, Slope, Variance, RVariance, Interception, LineFit)=series_fit_line(ipcount)
+    | where Slope > 0.5  
+    | top 50 by Slope desc
+    )
+    on UserPrincipalName
+    | extend AccountCustomEntity = UserPrincipalName
+    | render timechart 
