@@ -1,20 +1,25 @@
-let timeframe = 30m;
-let lookback = 30m;
-let account_created =
-SecurityEvent 
-| where EventID == "4688" 
-| where TimeGenerated > ago(10m)
-| project creationTime = TimeGenerated, CreateEventID = EventID, Activity, Computer, UserPrincipalName, AccountUsedToCreate = SubjectUserName, TargetSid, 
-  SubjectUserSid, ProcessName, NewProcessName, ParentProcessName, EventOriginId;
-let account_deleted =
-SecurityEvent
-| where EventID == "4673" 
-| where TimeGenerated > ago(10m)
-| project deletionTime = TimeGenerated, DeleteEventID = EventID, Activity, Computer, UserPrincipalName, AccountUsedToDelete = SubjectUserName, TargetSid, 
-  SubjectUserSid, ProcessName, NewProcessName, ParentProcessName, EventOriginId;
-account_created | join kind= inner (account_deleted) on EventOriginId
+let process_created =
+    SecurityEvent 
+    | where EventID == "4688" // A new process has been created.
+    | where TimeGenerated > ago(60m)
+    | project processcreationTime = TimeGenerated, ProcessCreationEvent = EventID, Activity, Computer, UserPrincipalName, SubjectUserName, TargetSid, 
+        SubjectUserSid, ProcessName, NewProcessName, ParentProcessName, EventOriginId;
+let privilege_called =
+    SecurityEvent
+    | where EventID == "4673" // Privileged Service Called.
+    | where TimeGenerated > ago(60m)
+    | project privilige_time = TimeGenerated, PrivilgeServiceCalledEvent = EventID, Activity, Computer, UserPrincipalName, SubjectUserName, TargetSid, 
+        SubjectUserSid, ProcessName, NewProcessName, ParentProcessName, EventOriginId;
+process_created
+| join kind= inner (privilege_called) on EventOriginId
 | where Computer1 == Computer
-| where isnotempty(AccountUsedToCreate)
-| where ParentProcessName !contains "BfeToolWin8.exe"
+| where isnotempty(SubjectUserName)
 | where ParentProcessName == "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
-| summarize dcount(creationTime) by Computer, NewProcessName
+| summarize dcount(processcreationTime)
+    by
+    Computer,
+    NewProcessName,
+    ParentProcessName,
+    Activity,
+    Activity1,
+    processcreationTime
