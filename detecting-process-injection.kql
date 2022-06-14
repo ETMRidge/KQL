@@ -2,13 +2,13 @@ let timeframe = 30m;
 let lookback = 30m;
 let account_created =
 SecurityEvent 
-| where EventID == "4688" // A user account was created
+| where EventID == "4688" 
 | where TimeGenerated > ago(10m)
 | project creationTime = TimeGenerated, CreateEventID = EventID, Activity, Computer, UserPrincipalName, AccountUsedToCreate = SubjectUserName, TargetSid, 
   SubjectUserSid, ProcessName, NewProcessName, ParentProcessName, EventOriginId;
 let account_deleted =
 SecurityEvent
-| where EventID == "4673" // A user account was deleted 
+| where EventID == "4673" 
 | where TimeGenerated > ago(10m)
 | project deletionTime = TimeGenerated, DeleteEventID = EventID, Activity, Computer, UserPrincipalName, AccountUsedToDelete = SubjectUserName, TargetSid, 
   SubjectUserSid, ProcessName, NewProcessName, ParentProcessName, EventOriginId;
