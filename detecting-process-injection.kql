@@ -1,0 +1,20 @@
+let timeframe = 30m;
+let lookback = 30m;
+let account_created =
+SecurityEvent 
+| where EventID == "4688" // A user account was created
+| where TimeGenerated > ago(10m)
+| project creationTime = TimeGenerated, CreateEventID = EventID, Activity, Computer, UserPrincipalName, AccountUsedToCreate = SubjectUserName, TargetSid, 
+  SubjectUserSid, ProcessName, NewProcessName, ParentProcessName, EventOriginId;
+let account_deleted =
+SecurityEvent
+| where EventID == "4673" // A user account was deleted 
+| where TimeGenerated > ago(10m)
+| project deletionTime = TimeGenerated, DeleteEventID = EventID, Activity, Computer, UserPrincipalName, AccountUsedToDelete = SubjectUserName, TargetSid, 
+  SubjectUserSid, ProcessName, NewProcessName, ParentProcessName, EventOriginId;
+account_created | join kind= inner (account_deleted) on EventOriginId
+| where Computer1 == Computer
+| where isnotempty(AccountUsedToCreate)
+| where ParentProcessName !contains "BfeToolWin8.exe"
+| where ParentProcessName == "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+| summarize dcount(creationTime) by Computer, NewProcessName
