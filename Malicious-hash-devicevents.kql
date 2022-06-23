@@ -1,0 +1,10 @@
+DeviceEvents
+| where TimeGenerated > ago(30d)
+| where isnotempty(MD5) or isnotempty(InitiatingProcessMD5)
+| where MD5 in (externaldata (MalMD5:string) [ 
+h@"https://raw.githubusercontent.com/ETMRidge/Useful-Scripts/main/malhashmd5.txt"
+]
+with(format="txt")) or InitiatingProcessMD5 in (externaldata (MalMD5:string) [ 
+h@"https://raw.githubusercontent.com/ETMRidge/Useful-Scripts/main/malhashmd5.txt"
+]
+with(format="txt"))
