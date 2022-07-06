@@ -1,0 +1,16 @@
+Event
+| where Source == "Microsoft-Windows-Sysmon"
+//Sysmon Decoder starts here
+| extend RenderedDescription = tostring(split(RenderedDescription, ":")[0])
+| extend EventData = parse_xml(EventData).DataItem.EventData.Data
+| mv-expand bagexpansion=array EventData
+| evaluate bag_unpack(EventData)
+| extend Key=tostring(['@Name']), Value=['#text']
+| evaluate pivot(Key, any(Value), TimeGenerated, Source, EventLog, Computer, EventLevel, EventLevelName, EventID, UserName, RenderedDescription, MG, ManagementGroupName, Type, _ResourceId)
+| extend
+    RuleName = column_ifexists("RuleName", ""),
+    TechniqueId = column_ifexists("TechniqueId", ""),
+    TechniqueName = column_ifexists("TechniqueName", "")
+| parse RuleName with * 'technique_id=' TechniqueId ',' * 'technique_name=' TechniqueName
+//Sysmon decoder ends here
+| where CommandLine matches regex '"*" -e (?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$'
