@@ -1,13 +1,13 @@
 DeviceEvents
 | where TimeGenerated > ago(30d)
 | where isnotempty(MD5) or isnotempty(InitiatingProcessMD5)
-| where MD5 in (externaldata (MalMD5:string) [ 
-h@"https://raw.githubusercontent.com/ETMRidge/Useful-Scripts/main/malhashmd5.txt"
-]
-with(format="txt")) or InitiatingProcessMD5 in (externaldata (MalMD5:string) [ 
-h@"https://raw.githubusercontent.com/ETMRidge/Useful-Scripts/main/malhashmd5.txt"
-]
-with(format="txt"))
+| where MD5 in (externaldata (MalMD5: string) [ 
+    h@"https://raw.githubusercontent.com/ETMRidge/Useful-Scripts/main/malhashmd5.txt"
+    ]
+    with(format="txt")) or InitiatingProcessMD5 in (externaldata (MalMD5: string) [ 
+    h@"https://raw.githubusercontent.com/ETMRidge/Useful-Scripts/main/malhashmd5.txt"
+    ]
+    with(format="txt"))
 
 Event
 Split
@@ -29,3 +29,106 @@ Event
 | extend hashsplit=split(Hashes, ",")[1]
 | extend tostring(hashsplit)
 | extend MD5 = trim("MD5=", hashsplit)
+
+Event
+| where Source == "Microsoft-Windows-Sysmon"
+//Sysmon Decoder starts here
+| extend RenderedDescription = tostring(split(RenderedDescription, ":")[0])
+| extend EventData = parse_xml(EventData).DataItem.EventData.Data
+| mv-expand bagexpansion=array EventData
+| evaluate bag_unpack(EventData)
+| extend Key=tostring(['@Name']), Value=['#text']
+| evaluate pivot(Key, any(Value), TimeGenerated, Source, EventLog, Computer, EventLevel, EventLevelName, EventID, UserName, RenderedDescription, MG, ManagementGroupName, Type, _ResourceId)
+| extend
+    RuleName = column_ifexists("RuleName", ""),
+    TechniqueId = column_ifexists("TechniqueId", ""),
+    TechniqueName = column_ifexists("TechniqueName", "")
+| extend hashsplit=split(Hashes, ",")[1]
+| extend tostring(hashsplit)
+| extend MD5 = trim("MD5=", hashsplit)
+| project 
+    TimeGenerated,
+    Source,
+    EventLog,
+    Computer,
+    EventLevel,
+    EventLevelName,
+    EventID,
+    UserName,
+    RenderedDescription,
+    MG,
+    ManagementGroupName,
+    Type,
+    CallTrace,
+    CommandLine,
+    Company,
+    Contents,
+    CreationUtcTime,
+    CurrentDirectory,
+    Description,
+    DestinationHostname,
+    DestinationIp,
+    DestinationIsIpv6,
+    DestinationPort,
+    DestinationPortName,
+    Details,
+    EventType,
+    FileVersion,
+    GrantedAccess,
+    Hash,
+    Hashes,
+    ID,
+    Image,
+    ImageLoaded,
+    Initiated,
+    IntegrityLevel,
+    LogonGuid,
+    LogonId,
+    NewThreadId,
+    OriginalFileName,
+    ParentCommandLine,
+    ParentImage,
+    ParentProcessGuid,
+    ParentProcessId,
+    ParentUser,
+    PipeName,
+    ProcessGuid,
+    ProcessId,
+    Product,
+    Protocol,
+    QueryName,
+    QueryResults,
+    QueryStatus,
+    RuleName,
+    SchemaVersion,
+    Signature,
+    SignatureStatus,
+    Signed,
+    SourceHostname,
+    SourceImage,
+    SourceIp,
+    SourceIsIpv6,
+    SourcePort,
+    SourcePortName,
+    SourceProcessGuid,
+    SourceProcessGUID,
+    SourceProcessId,
+    SourceThreadId,
+    SourceUser,
+    StartAddress,
+    StartFunction,
+    StartModule,
+    State,
+    TargetFilename,
+    TargetImage,
+    TargetObject,
+    TargetProcessGuid,
+    TargetProcessGUID,
+    TargetProcessId,
+    TargetUser,
+    TerminalSessionId,
+    User,
+    UtcTime,
+    Version,
+    TechniqueId,
+    TechniqueName, MD5
