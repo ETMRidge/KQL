@@ -1,6 +1,6 @@
 Event
-| where Source == "Microsoft-Windows-Sysmon"
 //Sysmon Decoder starts here
+| where Source == "Microsoft-Windows-Sysmon"
 | extend RenderedDescription = tostring(split(RenderedDescription, ":")[0])
 | extend EventData = parse_xml(EventData).DataItem.EventData.Data
 | mv-expand bagexpansion=array EventData
@@ -11,29 +11,12 @@ Event
     RuleName = column_ifexists("RuleName", ""),
     TechniqueId = column_ifexists("TechniqueId", ""),
     TechniqueName = column_ifexists("TechniqueName", "")
-| parse RuleName with * 'technique_id=' TechniqueId ',' * 'technique_name=' TechniqueName
-| extend hashsplit=split(Hashes, ",")[1]
+| extend hashsplit=split(Hashes, ",")[1] // Defines the Hash as the second hash in the list.
 | extend tostring(hashsplit)
 | extend MD5 = trim("MD5=", hashsplit)
-
-Event
-| where Source == "Microsoft-Windows-Sysmon"
-//Sysmon Decoder starts here
-| extend RenderedDescription = tostring(split(RenderedDescription, ":")[0])
-| extend EventData = parse_xml(EventData).DataItem.EventData.Data
-| mv-expand bagexpansion=array EventData
-| evaluate bag_unpack(EventData)
-| extend Key=tostring(['@Name']), Value=['#text']
-| evaluate pivot(Key, any(Value), TimeGenerated, Source, EventLog, Computer, EventLevel, EventLevelName, EventID, UserName, RenderedDescription, MG, ManagementGroupName, Type, _ResourceId)
-| extend
-    RuleName = column_ifexists("RuleName", ""),
-    TechniqueId = column_ifexists("TechniqueId", ""),
-    TechniqueName = column_ifexists("TechniqueName", "")
-| extend hashsplit=split(Hashes, ",")[1]
-| extend tostring(hashsplit)
-| extend MD5 = trim("MD5=", hashsplit)
+// Sysmon Decoder Ends here
 | where MD5 in (externaldata (MalMD5: string) [ 
-    h@"https://raw.githubusercontent.com/ETMRidge/Useful-Scripts/main/malhashmd5.txt"
+    h@"https://raw.githubusercontent.com/ETMRidge/Useful-Scripts/main/malhashmd5.txt" //This can be replaced with any TXT file that is solely MD5 hashes.
     ])
 | project 
     TimeGenerated,
