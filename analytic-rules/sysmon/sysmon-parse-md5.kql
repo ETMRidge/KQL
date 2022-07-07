@@ -1,17 +1,3 @@
-DeviceEvents
-| where TimeGenerated > ago(30d)
-| where isnotempty(MD5) or isnotempty(InitiatingProcessMD5)
-| where MD5 in (externaldata (MalMD5: string) [ 
-    h@"https://raw.githubusercontent.com/ETMRidge/Useful-Scripts/main/malhashmd5.txt"
-    ]
-    with(format="txt")) or InitiatingProcessMD5 in (externaldata (MalMD5: string) [ 
-    h@"https://raw.githubusercontent.com/ETMRidge/Useful-Scripts/main/malhashmd5.txt"
-    ]
-    with(format="txt"))
-
-Event
-Split
-
 Event
 | where Source == "Microsoft-Windows-Sysmon"
 //Sysmon Decoder starts here
@@ -46,6 +32,9 @@ Event
 | extend hashsplit=split(Hashes, ",")[1]
 | extend tostring(hashsplit)
 | extend MD5 = trim("MD5=", hashsplit)
+| where MD5 in (externaldata (MalMD5: string) [ 
+    h@"https://raw.githubusercontent.com/ETMRidge/Useful-Scripts/main/malhashmd5.txt"
+    ])
 | project 
     TimeGenerated,
     Source,
