@@ -1,0 +1,29 @@
+Event
+| where Source == "Microsoft-Windows-Sysmon"
+//Sysmon Decoder starts here
+| extend RenderedDescription = tostring(split(RenderedDescription, ":")[0])
+| extend EventData = parse_xml(EventData).DataItem.EventData.Data
+| mv-expand bagexpansion=array EventData
+| evaluate bag_unpack(EventData)
+| extend Key=tostring(['@Name']), Value=['#text']
+| evaluate pivot(Key, any(Value), TimeGenerated, Source, EventLog, Computer, EventLevel, EventLevelName, EventID, UserName, RenderedDescription, MG, ManagementGroupName, Type, _ResourceId)
+| extend
+    RuleName = column_ifexists("RuleName", ""),
+    TechniqueId = column_ifexists("TechniqueId", ""),
+    TechniqueName = column_ifexists("TechniqueName", "")
+| extend hashsplit=split(Hashes, ",")[1] // Defines the Hash as the second hash in the list.
+| extend tostring(hashsplit)
+| extend MD5 = trim("MD5=", hashsplit)
+| where Image contains "rundll32.exe"
+| where ParentImage contains "cmd.exe"
+    or ParentImage contains "winword.exe"
+    or ParentImage contains "excel.exe"
+    or ParentImage contains "msaccess.exe"
+    or ParentImage contains "lsass.exe"
+    or ParentImage contains "taskeng.exe"
+    or ParentImage contains "winlogon.exe"
+    or ParentImage contains "schtask.exe"
+    or ParentImage contains "regsvr32.exe"
+    or ParentImage contains "wmiprvse.exe"
+    or ParentImage contains "wsmprovhost.exe"
+    or ParentImage contains "powershell.exe"
